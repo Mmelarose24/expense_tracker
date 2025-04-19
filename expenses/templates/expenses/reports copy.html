@@ -1,0 +1,139 @@
+{% extends "expenses/base.html" %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto space-y-6">
+    <h1 class="text-2xl font-bold">Financial Reports</h1>
+
+    <!-- Monthly Summary -->
+    <div class="bg-white p-6 rounded-lg shadow">
+        <h2 class="text-xl font-bold mb-4">Monthly Summary</h2>
+        
+        <div class="grid md:grid-cols-2 gap-6">
+            <!-- Expenses by Category -->
+            <div>
+                <h3 class="text-lg font-semibold mb-3">Expenses by Category</h3>
+                <canvas id="categoryChart" height="300"></canvas>
+            </div>
+            
+            <!-- Budget vs Actual -->
+            <div>
+                <h3 class="text-lg font-semibold mb-3">Budget vs Actual</h3>
+                <canvas id="budgetChart" height="300"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Detailed Expense Report -->
+    <div class="bg-white p-6 rounded-lg shadow">
+        <h2 class="text-xl font-bold mb-4">Detailed Expenses</h2>
+        
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for expense in monthly_expenses %}
+                    <tr>
+                        <td class="px-6 py-4 whitespace-nowrap">{{ expense.date }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap">{{ expense.category.name|default:"Uncategorized" }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap">${{ expense.amount|floatformat:2 }}</td>
+                        <td class="px-6 py-4">{{ expense.description|truncatechars:50|default:"-" }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="4" class="px-6 py-4 text-center text-gray-500">No expenses recorded this month.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // Category Chart
+    const categoryCtx = document.getElementById('categoryChart').getContext('2d');
+    const categoryLabels = [{% for category in category_data %}'{{ category.name }}',{% endfor %}];
+    const categoryAmounts = [{% for category in category_data %}{{ category.amount|default:0 }},{% endfor %}];
+    
+    new Chart(categoryCtx, {
+        type: 'pie',
+        data: {
+            labels: categoryLabels,
+            datasets: [{
+                data: categoryAmounts,
+                backgroundColor: [
+                    'rgba(255, 99, 132, 0.7)',
+                    'rgba(54, 162, 235, 0.7)',
+                    'rgba(255, 206, 86, 0.7)',
+                    'rgba(75, 192, 192, 0.7)',
+                    'rgba(153, 102, 255, 0.7)',
+                    'rgba(255, 159, 64, 0.7)'
+                ],
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'right',
+                },
+                title: {
+                    display: true,
+                    text: 'Expenses by Category'
+                }
+            }
+        }
+    });
+
+    // Budget vs Actual Chart
+    const budgetCtx = document.getElementById('budgetChart').getContext('2d');
+    const budgetLabels = [{% for budget in budget_data %}'{{ budget.category }}',{% endfor %}];
+    const budgetAmounts = [{% for budget in budget_data %}{{ budget.budget|default:0 }},{% endfor %}];
+    const actualAmounts = [{% for budget in budget_data %}{{ budget.actual|default:0 }},{% endfor %}];
+    
+    new Chart(budgetCtx, {
+        type: 'bar',
+        data: {
+            labels: budgetLabels,
+            datasets: [
+                {
+                    label: 'Budget',
+                    data: budgetAmounts,
+                    backgroundColor: 'rgba(54, 162, 235, 0.7)',
+                },
+                {
+                    label: 'Actual',
+                    data: actualAmounts,
+                    backgroundColor: 'rgba(255, 99, 132, 0.7)',
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Amount ($)'
+                    }
+                }
+            },
+            plugins: {
+                title: {
+                    display: true,
+                    text: 'Budget vs Actual Spending'
+                }
+            }
+        }
+    });
+</script>
+{% endblock %}
